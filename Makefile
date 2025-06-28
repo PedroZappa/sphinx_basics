@@ -9,7 +9,8 @@ SHELL	:= bash --rcfile ~/.bashrc
 #                                     NAMES                                    #
 #==============================================================================#
 
-NAME = $(shell basename $(CURDIR))
+CWD = $(shell basename $(CURDIR))
+NAME = lumache
 MAIN = $(NAME).py
 SRC = .
 ARGS = small
@@ -74,11 +75,55 @@ sphinx:		## Generate .rst files
 docs: sphinx 		## Open docs index in browser
 	xdg-open docs/build/html/index.html
 
+
 ##@ Test/Debug Rules 
 
-test:			## Run all tests
-	@$(MAKE) pytest
-	@$(MAKE) mypy
+# Test summary box components
+TEST_BOX_TOP	:= ╔═══════════════════════════════════╗
+TEST_BOX_MID	:= ╠═══════════════════════════════════╣
+TEST_BOX_BOT	:= ╚═══════════════════════════════════╝
+TEST_HEADER		:= ║           TEST SUMMARY            ║
+
+test:## Run all tests
+	@echo "* $(MAG)$(NAME) $(YEL)starting test suite$(D):"
+	@echo ""
+	@$(MAKE) doctest; DOCTEST_EXIT=$$?; \
+	$(MAKE) pytest; PYTEST_EXIT=$$?; \
+	$(MAKE) mypy; MYPY_EXIT=$$?; \
+	echo ""; \
+	echo "$(MAG)$(TEST_BOX_TOP)$(D)"; \
+	echo "$(MAG)$(TEST_HEADER)$(D)"; \
+	echo "$(MAG)$(TEST_BOX_MID)$(D)"; \
+	print_test_result() { \
+		test_name="$$2"; \
+		name_length=$${#test_name}; \
+		if [ $$1 -eq 0 ]; then \
+			status="$(GRN)PASSED$(D)"; \
+			icon="$(GRN)✓$(D)"; \
+		else \
+			status="$(RED)FAILED$(D)"; \
+			icon="$(RED)✗$(D)"; \
+		fi; \
+		padding=$$((25 - name_length)); \
+		printf "$(MAG)║$(D) %s %s %s%*s$(MAG)║$(D)\n" \
+			"$$icon" "$$test_name" "$$status" "$$padding" ""; \
+	}; \
+	print_test_result $$DOCTEST_EXIT "Doctest"; \
+	print_test_result $$PYTEST_EXIT "Pytest"; \
+	print_test_result $$MYPY_EXIT "MyPy"; \
+	echo "$(MAG)$(TEST_BOX_BOT)$(D)"; \
+	echo ""; \
+	TOTAL_FAILED=$$(($$DOCTEST_EXIT + $$PYTEST_EXIT + $$MYPY_EXIT)); \
+	if [ $$TOTAL_FAILED -eq 0 ]; then \
+		echo "$(GRN)🎉 All tests passed successfully!$(D)"; \
+		exit 0; \
+	else \
+		echo "$(RED)❌ $$TOTAL_FAILED test suite(s) failed$(D)"; \
+		exit 1; \
+	fi
+
+doctest: sphinx		## Run sphinx doctests
+	$(MAKE) -C docs doctest
 
 pytest:		## run pytest
 	@echo "* $(MAG)$(NAME) $(YEL)running pytest$(D):"
