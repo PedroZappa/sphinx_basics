@@ -23,6 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
 ]
 
 templates_path = ['_templates']
